@@ -1,108 +1,105 @@
+# features.py
 from web3 import Web3
-from datetime import datetime
+import time
+from collections import defaultdict
 
-# Connect to local blockchain (Ganache)
-w3 = Web3(Web3.HTTPProvider("http://127.0.0.1:7545"))
+def get_eth_features(w3: Web3, account_address: str):
+    """
+    Extract ETH transaction features for a given account.
+    """
+    txns_sent = []
+    txns_received = []
+    contracts_created = 0
+    unique_sent_to = set()
+    unique_received_from = set()
+    total_ether_sent = 0
+    total_ether_received = 0
 
-def get_all_txs(address, start_block=0, end_block=None):
-    """Get all transactions involving the address."""
-    if end_block is None:
-        end_block = w3.eth.block_number
-    sent = []
-    received = []
-    created_contracts = 0
-
-    for block_num in range(start_block, end_block + 1):
+    latest_block = w3.eth.block_number
+    for block_num in range(0, latest_block + 1):
         block = w3.eth.get_block(block_num, full_transactions=True)
         for tx in block.transactions:
-            tx_from = tx['from'].lower()
-            tx_to = tx['to'].lower() if tx['to'] else None
-            if tx_from == address.lower():
-                sent.append(tx)
-                if tx_to is None:
-                    created_contracts += 1
-            elif tx_to == address.lower():
-                received.append(tx)
+            if tx['from'].lower() == account_address.lower():
+                txns_sent.append(tx)
+                unique_sent_to.add(tx['to'])
+                total_ether_sent += w3.from_wei(tx['value'], 'ether')
+                if tx['to'] is None:
+                    contracts_created += 1
+            if tx['to'] and tx['to'].lower() == account_address.lower():
+                txns_received.append(tx)
+                unique_received_from.add(tx['from'])
+                total_ether_received += w3.from_wei(tx['value'], 'ether')
 
-    return sent, received, created_contracts
-
-def compute_time_features(sent, received):
-    """Compute average minutes between sent/received and overall time diff."""
-    def avg_min_between(txs):
-        if len(txs) < 2:
+    # Time-based calculations
+    def avg_min_between_txns(txns):
+        if len(txns) < 2:
             return 0
-        timestamps = [w3.eth.get_block(tx.blockNumber).timestamp for tx in txs]
+        timestamps = [w3.eth.get_block(tx.blockNumber)['timestamp'] for tx in txns]
         timestamps.sort()
-        diffs = [(timestamps[i+1] - timestamps[i])/60 for i in range(len(timestamps)-1)]
-        return sum(diffs)/len(diffs)
+        diffs = [timestamps[i+1]-timestamps[i] for i in range(len(timestamps)-1)]
+        avg_diff_sec = sum(diffs)/len(diffs)
+        return avg_diff_sec / 60  # convert to minutes
 
-    all_times = [w3.eth.get_block(tx.blockNumber).timestamp for tx in sent+received]
-    all_times.sort()
-    time_diff_mins = (all_times[-1] - all_times[0])/60 if all_times else 0
+    avg_min_sent = avg_min_between_txns(txns_sent)
+    avg_min_received = avg_min_between_txns(txns_received)
 
-    return {
-        "Avg min between sent tnx": avg_min_between(sent),
-        "Avg min between received tnx": avg_min_between(received),
-        "Time Diff between first and last (Mins)": time_diff_mins
-    }
+    first_ts = min([w3.eth.get_block(tx.blockNumber)['timestamp'] for tx in txns_sent + txns_received], default=0)
+    last_ts = max([w3.eth.get_block(tx.blockNumber)['timestamp'] for tx in txns_sent + txns_received], default=0)
+    time_diff_mins = (last_ts - first_ts) / 60 if last_ts > first_ts else 0
 
-def compute_tx_counts(sent, received, created_contracts):
-    """Compute counts of transactions and unique addresses."""
-    unique_sent_to = len(set(tx['to'] for tx in sent if tx['to']))
-    unique_received_from = len(set(tx['from'] for tx in received))
-
-    return {
-        "Sent tnx": len(sent),
-        "Received Tnx": len(received),
-        "Number of Created Contracts": created_contracts,
-        "Unique Received From Addresses": unique_received_from,
-        "Unique Sent To Addresses": unique_sent_to
-    }
-
-def compute_value_features(address, sent, received):
-    """Compute min, max, and avg of ETH sent and received."""
-    def calc_stats(txs, key):
-        if not txs:
-            return 0, 0, 0
-        values = [w3.from_wei(tx[key], 'ether') for tx in txs]
+    # Values
+    def tx_values(txns):
+        if not txns:
+            return 0,0,0
+        values = [w3.from_wei(tx['value'], 'ether') for tx in txns]
         return min(values), max(values), sum(values)/len(values)
 
-    min_rec, max_rec, avg_rec = calc_stats(received, 'value')
-    min_sent, max_sent, avg_sent = calc_stats(sent, 'value')
-
-    sent_to_contract = [w3.from_wei(tx['value'], 'ether') for tx in sent if tx['to'] is None]
+    min_received, max_received, avg_received = tx_values(txns_received)
+    min_sent, max_sent, avg_sent = tx_values(txns_sent)
+    sent_to_contract = [w3.from_wei(tx['value'], 'ether') for tx in txns_sent if tx['to'] is None]
     min_contract = min(sent_to_contract) if sent_to_contract else 0
     max_contract = max(sent_to_contract) if sent_to_contract else 0
     avg_contract = sum(sent_to_contract)/len(sent_to_contract) if sent_to_contract else 0
+    balance = w3.from_wei(w3.eth.get_balance(account_address), 'ether')
 
-    total_sent = sum([w3.from_wei(tx['value'], 'ether') for tx in sent])
-    total_received = sum([w3.from_wei(tx['value'], 'ether') for tx in received])
-    total_balance = w3.from_wei(w3.eth.get_balance(address), 'ether')
-
-
-    return {
-        "min value received": min_rec,
-        "max value received ": max_rec,
-        "avg val received": avg_rec,
-        "min val sent": min_sent,
-        "max val sent": max_sent,
-        "avg val sent": avg_sent,
-        "min value sent to contract": min_contract,
-        "max val sent to contract": max_contract,
-        "avg value sent to contract": avg_contract,
-        "total transactions (including tnx to create contract": len(sent)+len(received),
-        "total Ether sent": total_sent,
-        "total ether received": total_received,
-        "total ether sent contracts": sum(sent_to_contract),
-        "total ether balance": total_balance
+    features = {
+        'Avg min between sent tnx': avg_min_sent,
+        'Avg min between received tnx': avg_min_received,
+        'Time Diff between first and last (Mins)': time_diff_mins,
+        'Sent tnx': len(txns_sent),
+        'Received Tnx': len(txns_received),
+        'Number of Created Contracts': contracts_created,
+        'Unique Received From Addresses': len(unique_received_from),
+        'Unique Sent To Addresses': len(unique_sent_to),
+        'min value received': min_received,
+        'max value received ': max_received,
+        'avg val received': avg_received,
+        'min val sent': min_sent,
+        'max val sent': max_sent,
+        'avg val sent': avg_sent,
+        'min value sent to contract': min_contract,
+        'max val sent to contract': max_contract,
+        'avg value sent to contract': avg_contract,
+        'total ether sent contracts': sum(sent_to_contract),
+        'total transactions (including tnx to create contract': len(txns_sent + txns_received),
+        'total Ether sent': total_ether_sent,
+        'total ether received': total_ether_received,
+        'total ether balance': balance
     }
-
-def extract_features(address, start_block=0, end_block=None):
-    sent, received, created_contracts = get_all_txs(address, start_block, end_block)
-    features = {}
-    features.update(compute_time_features(sent, received))
-    features.update(compute_tx_counts(sent, received, created_contracts))
-    features.update(compute_value_features(address, sent, received))
     return features
 
-print(extract_features("0x826ACF55EBd27E9Df4020123C783f91f0585e1F9"))
+
+
+
+
+def extract_features(w3: Web3, account_address: str):
+    """
+    Extract both ETH and ERC20 features for an account.
+    erc20_contracts: list of dicts [{'address':..., 'abi':...}]
+    """
+    features = get_eth_features(w3, account_address)
+    features.update({'Total ERC20 tnxs': 0.0, 'ERC20 total Ether received': 0.0, 'ERC20 total ether sent': 0.0, 'ERC20 total Ether sent contract': 0.0, 'ERC20 uniq sent addr': 0.0, 'ERC20 uniq rec addr': 0.0, 'ERC20 uniq sent addr.1': 0.0, 'ERC20 uniq rec contract addr': 0.0, 'ERC20 min val rec': 0.0, 'ERC20 max val rec': 0.0, 'ERC20 avg val rec': 0.0, 'ERC20 min val sent': 0.0, 'ERC20 max val sent': 0.0, 'ERC20 avg val sent': 0.0, 'ERC20 uniq sent token name': 0.0, 'ERC20 uniq rec token name': 0.0, 'ERC20 most sent token type': '0', 'ERC20_most_rec_token_type': '0'})
+    return features
+
+
+print(extract_features(Web3(Web3.HTTPProvider("http://127.0.0.1:7545")),"0x93d75E1991b0cea056c2f6633E9E3F4e45295844"))
