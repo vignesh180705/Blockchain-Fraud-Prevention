@@ -1,0 +1,11 @@
+flask 
+joblib 
+web3 
+python-dotenv
+scikit-learn
+imblearn
+kagglehub
+xgboost
+seaborn
+pandas
+matplotlib
