@@ -27,10 +27,11 @@ account = w3.eth.account.from_key(PRIVATE_KEY)
 features = extract_features(w3, account.address)
 payload = {
   "sender": account.address,
-  "receiver": "0xEb78a4621fAE45f1ee3b52CDDCb7e99ce3a96B43",
-  "amount": 211,
+  "receiver": "0x4CD7047fA3DEB1fA584B9d72FAD321EEd6ebA54e",
+  "amount": 300,
+  "currency": "USDX",
+  "is_token": True,
   "features": convert_decimals(features)
 }
 r = requests.post("http://127.0.0.1:5000/predict", json=payload)
 print(r.json())
-
