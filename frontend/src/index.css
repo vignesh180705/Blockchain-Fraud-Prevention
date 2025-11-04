@@ -53,3 +53,42 @@ button:hover { background: #0056b3; }
   color: #333;
   margin-bottom: 10px;
 }
+.token-selector {
+  margin: 15px 0;
+}
+
+.token-selector select {
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+  font-size: 1rem;
+}
+
+.custom-token {
+  margin-top: 20px;
+  padding: 12px;
+  border: 1px solid #ddd;
+  border-radius: 10px;
+  background: #f9f9f9;
+}
+
+.custom-token input {
+  width: 70%;
+  padding: 8px;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+  margin-right: 8px;
+}
+
+.custom-token button {
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: none;
+  background: #007bff;
+  color: white;
+  cursor: pointer;
+}
+
+.token-info {
+  margin-top: 10px;
+}
