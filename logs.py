@@ -1,6 +1,7 @@
 from web3 import Web3
 import os
 from dotenv import load_dotenv
+from datetime import datetime
 import json
 load_dotenv()
 # Connect to Ethereum node (Infura, Alchemy, etc.)
@@ -14,6 +15,9 @@ with open("frontend/src/abi/FraudLog.json") as f:
 
 contract = w3.eth.contract(address=contract_address, abi=abi)
 
+def convert_timestamp(ts):
+    return datetime.fromtimestamp(ts).strftime('%Y-%m-%d %H:%M:%S')
+
 # Fetch all FraudLogged events
 events = contract.events.FraudLogged.create_filter(from_block=0).get_all_entries()
 c=1
@@ -22,5 +26,6 @@ for event in events:
     print("Sender:", event.args.sender)
     print("Receiver:", event.args.receiver)
     print("Amount:", event.args.amount)
-    print("Timestamp:", event.args.timestamp)
+    print("Timestamp:", convert_timestamp(event.args.timestamp))
     c+=1
+
