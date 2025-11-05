@@ -10,3 +10,4 @@ seaborn
 pandas
 matplotlib
 etherscan-python
+flask-cors

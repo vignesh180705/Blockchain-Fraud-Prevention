@@ -24,7 +24,7 @@ def fetch_txs(address, action="txlist"):
         "apikey": API_KEY
     }
     resp = requests.get(ETHERSCAN_API, params=params, timeout=30)
-    print(resp.status_code,resp.text)
+    #print(resp.status_code,resp.text)
     data = resp.json()
     if data["status"] != "1":
         print(f"⚠️ Warning: {data.get('message')}")
@@ -131,7 +131,7 @@ def extract_features(address):
         'max val sent to contract': 0,
         'avg value sent to contract': 0,
         'total ether sent contracts': 0,
-        'total transactions (including tnx to create contract)': len(all_txs),
+        'total transactions (including tnx to create contract': len(all_txs),
         'total Ether sent': total_ether_sent,
         'total ether received': total_ether_received,
         'total ether balance': total_ether_balance,
@@ -154,7 +154,7 @@ def extract_features(address):
         'ERC20 uniq sent token name': uniq_sent_token_name,
         'ERC20 uniq rec token name': uniq_rec_token_name,
         'ERC20 most sent token type': most_sent_token_type,
-        'ERC20 most rec token type': most_rec_token_type
+        'ERC20_most_rec_token_type': most_rec_token_type
     }
 
     return features
@@ -164,5 +164,5 @@ def extract_features(address):
 # ---------------------------
 if __name__ == "__main__":
     feats = extract_features(ADDRESS)
-    for k, v in feats.items():
-        print(f"{k}: {v}")
+    #for k, v in feats.items():
+    #    print(f"{k}: {v}")
