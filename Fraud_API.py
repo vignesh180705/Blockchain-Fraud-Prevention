@@ -91,7 +91,7 @@ def predict():
         X = np.array(features).reshape(1, -1)
         #print('X:', X)
         print('Features:', features)
-        fraud_threshold = 0.3089379
+        fraud_threshold = 0.9
         feature_values = [features[k] for k in feature_names]
         #print('Feature values:', feature_values)
         prob = model.predict_proba(pd.DataFrame([features]))[:, 1][0]
@@ -99,6 +99,7 @@ def predict():
         #print("Features used for prediction:", list(features.keys()))
         print('Fraud Probability:', prob)
         return jsonify({
+            "prediction_probability": prob,
             "prediction": label,
             "sender": sender,
             "receiver": receiver,

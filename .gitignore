@@ -1,5 +1,6 @@
 node_modules
-**/.env
+.env
+frontend/.env
 
 # Hardhat files
 /cache
