@@ -105,7 +105,11 @@ export default function SendToken({ selectedToken, TOKENS }) {
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
             />
-            {status && <p backgroundColor={success ? "green" : "red"}>{status}</p>}
+            {status && (
+              <p style={{ backgroundColor: success ? "green" : "red", color: "white", padding: "8px" }}>
+                {status}
+              </p>
+            )}
             <button onClick={sendToken}>Send Token</button>
         </div>
     );
