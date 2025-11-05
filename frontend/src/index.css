@@ -1,5 +1,5 @@
 body {
-  background: #f5f5f5;
+  background: darkslategrey;
   font-family: Arial, sans-serif;
   display: flex;
   justify-content: center;
@@ -7,12 +7,13 @@ body {
   height: 100vh;
 }
 .App {
-  background: white;
+  background: darkgrey;
   padding: 30px;
   border-radius: 12px;
   box-shadow: 0 0 10px rgba(0,0,0,0.1);
   width: 400px;
   text-align: center;
+  align-self: center;
 }
 input, button {
   width: 100%;
@@ -32,12 +33,21 @@ button:hover { background: #0056b3; }
   justify-content: space-around;
   margin-bottom: 20px;
 }
+.tabs button {
+    background: #37e75d;
+}
+.tabs button:hover {
+  background: #176227;
+}
 .tabs button.active {
-  background: #28a745;
+  background: #218a3a;
+}
+.tabs button.active:hover {
+  background: #176227;
 }
 
 .connect {
-  background: #ff9800;
+  background: #2dc0c5;
   border: none;
   color: white;
   padding: 10px 20px;
@@ -46,11 +56,11 @@ button:hover { background: #0056b3; }
   font-weight: bold;
 }
 .connect:hover {
-  background: #e68900;
+  background: #2b7b8a;
 }
 .wallet {
-  font-size: 14px;
-  color: #333;
+  font-size: 16px;
+  color: #000000;
   margin-bottom: 10px;
 }
 .token-selector {
@@ -69,7 +79,7 @@ button:hover { background: #0056b3; }
   padding: 12px;
   border: 1px solid #ddd;
   border-radius: 10px;
-  background: #f9f9f9;
+  background: antiquewhite;
 }
 
 .custom-token input {

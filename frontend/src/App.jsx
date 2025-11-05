@@ -192,7 +192,7 @@ function App() {
       <h1>Blockchain Transaction Dashboard</h1>
 
       {account ? (
-        <div className="wallet-info">
+        <div className="wallet">
           <p><strong>Wallet:</strong> {account.slice(0, 6)}...{account.slice(-4)}</p>
           <p><strong>ETH Balance:</strong> {ethBalance} ETH</p>
           <p>
@@ -225,10 +225,10 @@ function App() {
 
       {selectedToken === "CUSTOM" && (
         <div className="custom-token">
-          <h3>🔍 Check Any ERC-20 Token</h3>
+          <h3>Search for any ERC-20 Token you own</h3>
           <input
             type="text"
-            placeholder="Paste token contract address"
+            placeholder="Paste the token contract address here"
             value={customTokenAddress}
             onChange={(e) => setCustomTokenAddress(e.target.value)}
           />
