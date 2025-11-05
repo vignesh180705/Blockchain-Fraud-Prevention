@@ -9,3 +9,4 @@ xgboost
 seaborn
 pandas
 matplotlib
+etherscan-python

@@ -1,16 +1,17 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-contract FraudRegistry {
-    address public owner;
+import "@openzeppelin/contracts/access/Ownable.sol";
 
-    struct TransactionRecord {
+contract FraudRegistry is Ownable {
+    struct FraudRecord {
         address sender;
         address receiver;
         uint256 amount;
+        uint256 timestamp;
     }
 
-    TransactionRecord[] private transactions;
+    FraudRecord[] private records;
 
     event FraudLogged(
         address indexed sender,
@@ -19,79 +20,35 @@ contract FraudRegistry {
         uint256 timestamp
     );
 
-    event TransactionsCleared(address indexed by);
-    event FundsWithdrawn(address indexed by, uint256 amount);
+    constructor() Ownable() {}
 
-    modifier onlyOwner() {
-        require(msg.sender == owner, "Not contract owner");
-        _;
-    }
-
-    constructor() {
-        owner = msg.sender;
-    }
-
-    // ------------------------------
-    // 🔹 Log Fraudulent Transaction
-    // ------------------------------
     function logFraudAttempt(
         address _sender,
         address _receiver,
         uint256 _amount
-    ) external {
-        require(_sender != address(0), "Invalid sender");
-        require(_receiver != address(0), "Invalid receiver");
-        require(_amount > 0, "Amount must be > 0");
+    ) external onlyOwner {
+        require(_sender != address(0) && _receiver != address(0), "Invalid address");
+        require(_amount > 0, "Invalid amount");
 
-        transactions.push(
-            TransactionRecord({
-                sender: _sender,
-                receiver: _receiver,
-                amount: _amount
-            })
-        );
-
+        records.push(FraudRecord(_sender, _receiver, _amount, block.timestamp));
         emit FraudLogged(_sender, _receiver, _amount, block.timestamp);
     }
 
-    // ---------------------------------------
-    // 🔹 View Functions
-    // ---------------------------------------
-    function getTransaction(uint256 _index)
+    function getRecord(uint256 index)
         external
         view
-        returns (address, address, uint256)
+        returns (address, address, uint256, uint256)
     {
-        require(_index < transactions.length, "Invalid index");
-        TransactionRecord memory txRecord = transactions[_index];
-        return (txRecord.sender, txRecord.receiver, txRecord.amount);
+        require(index < records.length, "Invalid index");
+        FraudRecord memory r = records[index];
+        return (r.sender, r.receiver, r.amount, r.timestamp);
     }
 
-    function totalTransactions() external view returns (uint256) {
-        return transactions.length;
+    function totalRecords() external view returns (uint256) {
+        return records.length;
     }
 
-    function getContractBalance() external view returns (uint256) {
-        return address(this).balance;
+    function clearRecords() external onlyOwner {
+        delete records;
     }
-
-    // ---------------------------------------
-    // 🔹 Owner Functions
-    // ---------------------------------------
-    function clearTransactions() external onlyOwner {
-        delete transactions;
-        emit TransactionsCleared(msg.sender);
-    }
-
-    function withdraw() external onlyOwner {
-        uint256 amount = address(this).balance;
-        require(amount > 0, "No balance to withdraw");
-        payable(owner).transfer(amount);
-        emit FundsWithdrawn(msg.sender, amount);
-    }
-
-    // ---------------------------------------
-    // 🔹 Fallback / Receive ETH
-    // ---------------------------------------
-    receive() external payable {}
 }

@@ -11,30 +11,63 @@ export default function SendToken({ selectedToken, TOKENS }) {
   async function sendToken() {
     try {
       if (!window.ethereum) return setStatus("Please install MetaMask!");
-        console.log("Selected Token in SendToken:", selectedToken);
+
+      setStatus("🔍 Checking transaction for fraud...");
       const provider = new ethers.BrowserProvider(window.ethereum);
-      console.log("Provider:", provider);
       await provider.send("eth_requestAccounts", []);
       const signer = await provider.getSigner();
-        console.log("Signer:", signer);
-      // 🔹 Use predefined token address if not CUSTOM
+      const sender = await signer.getAddress();
+
+      // Select correct token address
       const addressToUse =
         selectedToken === "CUSTOM"
           ? tokenAddress
           : TOKENS[selectedToken]?.address;
+
       if (!ethers.isAddress(addressToUse)) {
         return setStatus("❌ Invalid token contract address");
       }
-      console.log("Using token address:", addressToUse);
+
+      // ---- STEP 1: Fraud check ----
+      const fraudCheck = await fetch("http://127.0.0.1:5000/predict", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          sender,
+          receiver,
+          amount,
+          token: selectedToken,
+          tokenAddress: addressToUse,
+        }),
+      });
+
+      const result = await fraudCheck.json();
+      console.log("ML result:", result);
+
+      if (result.prediction === "fraudulent") {
+        setStatus("🚨 Transaction flagged as fraudulent. Blocking...");
+        // (Optional) call backend endpoint to log to blockchain
+        await fetch("http://127.0.0.1:5000/logFraud", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ sender, receiver, amount, token: selectedToken }),
+        });
+        return;
+      }
+
+      // ---- STEP 2: Proceed with token transfer ----
+      setStatus("✅ Legit transaction. Sending token...");
+
       const token = new ethers.Contract(addressToUse, erc20Abi, signer);
       const decimals = await token.decimals();
       const amountToSend = ethers.parseUnits(amount, decimals);
 
       const tx = await token.transfer(receiver, amountToSend);
       setStatus(`✅ Token sent! Tx Hash: ${tx.hash}`);
+
     } catch (err) {
-        
-      setStatus(`❌ Error a: ${err.message}`);
+      console.error("Error:", err);
+      setStatus(`❌ Error: ${err.message}`);
     }
   }
 

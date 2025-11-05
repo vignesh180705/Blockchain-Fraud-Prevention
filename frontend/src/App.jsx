@@ -229,7 +229,11 @@ function App() {
     <button onClick={() => setTab("token")} className={tab === "token" ? "active" : ""}>Send Token</button>
     </div>
 
-        {tab === "eth" ? <SendEth /> : <SendToken selectedToken={selectedToken} TOKENS={TOKENS} />}
+        {tab === "eth" ? (
+        <SendEth account={account} />
+        ) : (
+        <SendToken selectedToken={selectedToken} TOKENS={TOKENS} account={account} />
+        )}
     </div>
     );
 }
