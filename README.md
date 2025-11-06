@@ -1,13 +1,40 @@
-# Sample Hardhat Project
+# Ethereum & ERC-20 Fraud Detection Dashboard
 
-This project demonstrates a basic Hardhat use case. It comes with a sample contract, a test for that contract, and a Hardhat Ignition module that deploys that contract.
+## About
+This project detects and prevents fraudulent transactions on the **Ethereum blockchain**, analyzing both **ETH** and **ERC-20 token** activity.  
+It integrates:
+- **MetaMask** — for wallet connection and signing transactions  
+- **Infura** — as the blockchain RPC provider  
+- **Etherscan APIs** — for transaction data  
+- **Flask (Python)** — for backend ML fraud detection  
+- **React.js (JavaScript)** — for the user interface  
 
-Try running some of the following tasks:
+By combining on-chain wallet behavior and machine learning predictions, this system aims to provide **real-time fraud prevention** for both ETH and token-based transactions.
 
-```shell
-npx hardhat help
-npx hardhat test
-REPORT_GAS=true npx hardhat test
-npx hardhat node
-npx hardhat ignition deploy ./ignition/modules/Lock.js
-```
+---
+
+## Features
+- **Connect Wallet** via MetaMask  
+- **Send ETH or ERC-20 Tokens** securely  
+- **Machine Learning Fraud Detection** using Flask API  
+- **Wallet Analytics Dashboard** (transaction stats, unique addresses, averages)  
+- **Transaction History Viewer** with Etherscan links  
+- **ERC-20 Token Integration** (custom or predefined tokens)
+
+---
+
+## 🧩 Tech Stack
+
+### **Frontend**
+- React.js  
+- Ethers.js  
+- Custom CSS  
+
+### **Backend**
+- Python (Flask)  
+- Scikit-learn / XGBoost / Pandas / NumPy  
+
+### **Blockchain**
+- Ethereum (Sepolia Testnet)  
+- Infura (RPC endpoint)  
+- Etherscan API  
