@@ -19,7 +19,6 @@ export default function SendToken({ selectedToken, TOKENS }) {
             const signer = await provider.getSigner();
             const sender = await signer.getAddress();
 
-            // Select correct token address
             const addressToUse =
                 selectedToken === "CUSTOM"
                     ? tokenAddress
@@ -31,7 +30,6 @@ export default function SendToken({ selectedToken, TOKENS }) {
                 return;
             }
 
-            // ---- STEP 1: Fraud check ----
             const fraudCheck = await fetch("http://127.0.0.1:5000/predict", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -50,7 +48,6 @@ export default function SendToken({ selectedToken, TOKENS }) {
             if (result.prediction === "fraudulent") {
                 setStatus("Transaction flagged as fraudulent, hence blocked.");
                 setSuccess(false);
-                // (Optional) call backend endpoint to log to blockchain
                 await fetch("http://127.0.0.1:5000/logFraud", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
@@ -59,7 +56,6 @@ export default function SendToken({ selectedToken, TOKENS }) {
                 return;
             }
 
-            // ---- STEP 2: Proceed with token transfer ----
             setStatus("Legitimate transaction. Sending token...");
             setSuccess(true);
 
@@ -82,7 +78,6 @@ export default function SendToken({ selectedToken, TOKENS }) {
         <div className="eth-container">
             <h2>Send ERC20 Token</h2>
 
-            {/* Only show contract address input for custom tokens */}
             {selectedToken === "CUSTOM" && (
                 <input
                     type="text"

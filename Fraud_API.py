@@ -15,7 +15,7 @@ RPC_URL = os.getenv("REACT_APP_INFURA_PROJECT_URL")
 PRIVATE_KEY = os.getenv("REACT_APP_RELAYER_KEY")
 CONTRACT_ADDRESS = os.getenv("REACT_APP_ETH_CONTRACT_ADDRESS")
 ETHERSCAN_ADDRESS = os.getenv("REACT_APP_ETHERSCAN_ACCOUNT_ADDRESS")
-
+print(RPC_URL)
 w3 = Web3(Web3.HTTPProvider(RPC_URL))
 balance = w3.eth.get_balance(Web3.to_checksum_address(ETHERSCAN_ADDRESS))
 #print(balance)          
@@ -90,10 +90,9 @@ def predict():
         erc20_features = {k: float(v) if isinstance(v, (np.float32, np.float64)) else v for k,v in erc20_features.items()}
         eth_features = {k: float(v) if isinstance(v, (np.float32, np.float64)) else v for k,v in eth_features.items()}
 
-        # Prediction
         X = pd.DataFrame([features])
-        prob = float(model.predict_proba(X)[:, 1][0])  # convert to native float
-        fraud_threshold = 0.9
+        prob = float(model.predict_proba(X)[:, 1][0])  
+        fraud_threshold = 0.1
         label = "fraudulent" if prob > fraud_threshold else "legit"
 
         print('Features:', features)

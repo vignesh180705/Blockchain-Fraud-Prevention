@@ -14,15 +14,13 @@ export default function SendEth({ account }) {
             const provider = new ethers.BrowserProvider(window.ethereum);
             const signer = await provider.getSigner();
 
-            // Step 1: Prepare fraud check data
             const payload = {
                 sender: account,
                 receiver,
                 amount: amount,
-                features: {}, // optional or from backend
+                features: {}, 
             };
 
-            // Step 2: Call Flask ML API
             const response = await fetch("http://127.0.0.1:5000/predict", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -38,7 +36,7 @@ export default function SendEth({ account }) {
             }
             setStatus("Legitimate transaction. Sending ETH...");
             setSuccess(true);
-            // Step 3: Proceed with ETH transaction if legit
+
             const tx = await signer.sendTransaction({
                 to: receiver,
                 value: ethers.parseEther(amount),
