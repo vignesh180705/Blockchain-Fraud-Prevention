@@ -31,9 +31,6 @@ contract FraudRegistry {
         owner = msg.sender;
     }
 
-    // ------------------------------
-    // 🔹 Log Fraudulent Transaction
-    // ------------------------------
     function logFraudAttempt(
         address _sender,
         address _receiver,
@@ -54,9 +51,6 @@ contract FraudRegistry {
         emit FraudLogged(_sender, _receiver, _amount, block.timestamp);
     }
 
-    // ---------------------------------------
-    // 🔹 View Functions
-    // ---------------------------------------
     function getTransaction(uint256 _index)
         external
         view
@@ -75,9 +69,6 @@ contract FraudRegistry {
         return address(this).balance;
     }
 
-    // ---------------------------------------
-    // 🔹 Owner Functions
-    // ---------------------------------------
     function clearTransactions() external onlyOwner {
         delete transactions;
         emit TransactionsCleared(msg.sender);
@@ -90,8 +81,5 @@ contract FraudRegistry {
         emit FundsWithdrawn(msg.sender, amount);
     }
 
-    // ---------------------------------------
-    // 🔹 Fallback / Receive ETH
-    // ---------------------------------------
     receive() external payable {}
 }

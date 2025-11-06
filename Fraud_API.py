@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 from web3 import Web3
 import json
 import pandas as pd
-from features import extract_features  # Your existing feature extractor
+from features import extract_features  
 from decimal import Decimal
 import numpy as np
 load_dotenv()
@@ -15,11 +15,11 @@ RPC_URL = os.getenv("REACT_APP_INFURA_PROJECT_URL")
 PRIVATE_KEY = os.getenv("REACT_APP_RELAYER_KEY")
 CONTRACT_ADDRESS = os.getenv("REACT_APP_ETH_CONTRACT_ADDRESS")
 ETHERSCAN_ADDRESS = os.getenv("REACT_APP_ETHERSCAN_ACCOUNT_ADDRESS")
-# Initialize Web3
+
 w3 = Web3(Web3.HTTPProvider(RPC_URL))
 balance = w3.eth.get_balance(Web3.to_checksum_address(ETHERSCAN_ADDRESS))
-print(balance)          # in wei
-print(balance / 1e18)
+#print(balance)          
+print('Balance:',balance / 1e18)
 account = w3.eth.account.from_key(PRIVATE_KEY)
 feature_names = ['Avg min between sent tnx', 'Avg min between received tnx',
        'Time Diff between first and last (Mins)', 'Sent tnx', 'Received Tnx',
@@ -39,13 +39,12 @@ feature_names = ['Avg min between sent tnx', 'Avg min between received tnx',
        'ERC20 max val sent', 'ERC20 avg val sent',
        'ERC20 uniq sent token name', 'ERC20 uniq rec token name',
        'ERC20 most sent token type', 'ERC20_most_rec_token_type']
-# Load FraudRegistry ABI
+
 with open("frontend/src/abi/FraudLog.json") as f:
     abi = json.load(f)
 
 contract = w3.eth.contract(address=CONTRACT_ADDRESS, abi=abi)
 
-# Load ML model
 model = joblib.load("model/fraud_model.pkl")
 
 app = Flask(__name__)
@@ -67,37 +66,39 @@ def predict():
         sender = data.get("sender")
         receiver = data.get("receiver")
         amount = float(data.get("amount", 0))
-        token = data.get("token")  # token name for ERC20
-        tokenAddress = data.get("tokenAddress")  # ERC20 contract address
+        token = data.get("token")  
+        tokenAddress = data.get("tokenAddress") 
 
         if not sender or not receiver or not amount:
             return jsonify({"error": "Missing fields"}), 400
 
-        # ---- Extract blockchain-based features for the sender ----
-        features = extract_features(sender)  # this already fetches ETH + ERC20 features
+        features = extract_features(sender)  
         if not isinstance(features, dict):
             features = {k: 0 for k in feature_names}
-        features = convert_decimals(features)
-        # ---- Optionally, focus on token-specific features if ERC20 ----
-        if token and tokenAddress:
-            erc20_features = {k: v for k, v in features.items() if k.startswith("ERC20")}
-            eth_features = {k: v for k, v in features.items() if not k.startswith("ERC20")}
-        else:
-            erc20_features = {}
-            eth_features = {k: v for k, v in features.items() if not k.startswith("ERC20")}
 
-        # ---- Model Prediction ----
-        # You can decide whether to use all features or only ETH/ERC20 depending on type
-        X = np.array(features).reshape(1, -1)
-        #print('X:', X)
-        print('Features:', features)
+        features = convert_decimals(features)
+
+        if token and tokenAddress:
+            erc20_features = {k: v for k, v in features.items() if "ERC20" in k}
+            eth_features = {k: v for k, v in features.items() if "ERC20" not in k}
+        else:
+            erc20_features = {k: 0 for k in feature_names if "ERC20" in k}
+            eth_features = {k: v for k, v in features.items() if "ERC20" not in k}
+
+        # convert all NumPy floats in features to native Python floats
+        features = {k: float(v) if isinstance(v, (np.float32, np.float64)) else v for k,v in features.items()}
+        erc20_features = {k: float(v) if isinstance(v, (np.float32, np.float64)) else v for k,v in erc20_features.items()}
+        eth_features = {k: float(v) if isinstance(v, (np.float32, np.float64)) else v for k,v in eth_features.items()}
+
+        # Prediction
+        X = pd.DataFrame([features])
+        prob = float(model.predict_proba(X)[:, 1][0])  # convert to native float
         fraud_threshold = 0.9
-        feature_values = [features[k] for k in feature_names]
-        #print('Feature values:', feature_values)
-        prob = model.predict_proba(pd.DataFrame([features]))[:, 1][0]
-        label = "fraudulent" if prob>fraud_threshold else "legit"
-        #print("Features used for prediction:", list(features.keys()))
+        label = "fraudulent" if prob > fraud_threshold else "legit"
+
+        print('Features:', features)
         print('Fraud Probability:', prob)
+
         return jsonify({
             "prediction_probability": prob,
             "prediction": label,
@@ -115,7 +116,6 @@ def predict():
         return jsonify({"error": str(e)}), 500
 
 
-# ===== Log Fraudulent Transaction =====
 @app.route("/logFraud", methods=["POST"])
 def log_fraud():
     try:
@@ -123,7 +123,7 @@ def log_fraud():
         sender = data["sender"]
         receiver = data["receiver"]
         amount = data["amount"]
-        token = data["token"]
+        #token = data["token"]
 
         nonce = w3.eth.get_transaction_count(account.address)
         sender_cs = Web3.to_checksum_address(sender)
@@ -164,9 +164,6 @@ def get_features():
     except Exception as e:
         print("Feature extraction error:", e)
         return jsonify({"error": str(e)}), 500'''
-
-if __name__ == "__main__":
-    app.run(debug=True)
 
 if __name__ == "__main__":
     app.run(debug=True)

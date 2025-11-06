@@ -9,9 +9,6 @@ API_KEY = os.getenv("REACT_APP_ETHERSCAN_API_KEY")
 ADDRESS = os.getenv("REACT_APP_ETHERSCAN_ACCOUNT_ADDRESS")
 ETHERSCAN_API = "https://api.etherscan.io/v2/api"
 
-# ---------------------------
-# Fetch transactions
-# ---------------------------
 def fetch_txs(address, action="txlist"):
     params = {
         "chainid": 11155111,
@@ -27,22 +24,17 @@ def fetch_txs(address, action="txlist"):
     #print(resp.status_code,resp.text)
     data = resp.json()
     if data["status"] != "1":
-        print(f"⚠️ Warning: {data.get('message')}")
+        print(f"Warning: {data.get('message')}")
         return []
     return data["result"]
 
-# ---------------------------
-# Compute min/max/avg
-# ---------------------------
+
 def value_stats(txns, value_field="value", decimals=18):
     if not txns:
         return 0, 0, 0
     vals = [int(tx[value_field]) / (10 ** decimals) for tx in txns]
     return min(vals), max(vals), mean(vals)
 
-# ---------------------------
-# Compute average minutes between transactions
-# ---------------------------
 def avg_min_between_txns(txns):
     if len(txns) < 2:
         return 0
@@ -51,14 +43,10 @@ def avg_min_between_txns(txns):
     diffs = [timestamps[i+1] - timestamps[i] for i in range(len(timestamps)-1)]
     return mean(diffs) / 60
 
-# ---------------------------
-# Main feature extraction
-# ---------------------------
 def extract_features(address):
     eth_txs = fetch_txs(address, action="txlist")
     erc20_txs = fetch_txs(address, action="tokentx")
 
-    # ETH Features
     sent_txs = [tx for tx in eth_txs if tx["from"].lower() == address.lower()]
     received_txs = [tx for tx in eth_txs if tx["to"] and tx["to"].lower() == address.lower()]
 
@@ -82,7 +70,6 @@ def extract_features(address):
 
     contracts_created = sum(1 for tx in sent_txs if not tx["to"])
 
-    # ERC20 Features
     sent_erc20 = [tx for tx in erc20_txs if tx["from"].lower() == address.lower()]
     rec_erc20 = [tx for tx in erc20_txs if tx["to"].lower() == address.lower()]
 
@@ -99,7 +86,6 @@ def extract_features(address):
                               key=lambda t: sum(1 for tx in rec_erc20 if tx["tokenName"] == t),
                               default="None")
 
-    # ETH Balance
     params = {
         "chainid": 11155111,
         "module": "account",
@@ -112,7 +98,6 @@ def extract_features(address):
     total_ether_balance = int(resp.json().get("result", 0)) / 1e18
 
     features = {
-        # ETH Features
         'Avg min between sent tnx': avg_min_sent,
         'Avg min between received tnx': avg_min_received,
         'Time Diff between first and last (Mins)': time_diff_mins,
@@ -127,7 +112,7 @@ def extract_features(address):
         'min val sent': min_val_sent,
         'max val sent': max_val_sent,
         'avg val sent': avg_val_sent,
-        'min value sent to contract': 0,  # Not distinguishable in Etherscan API
+        'min value sent to contract': 0,  
         'max val sent to contract': 0,
         'avg value sent to contract': 0,
         'total ether sent contracts': 0,
@@ -136,15 +121,14 @@ def extract_features(address):
         'total ether received': total_ether_received,
         'total ether balance': total_ether_balance,
 
-        # ERC20 Features
         'Total ERC20 tnxs': len(sent_erc20) + len(rec_erc20),
         'ERC20 total Ether received': sum(int(tx["value"])/1e18 for tx in rec_erc20),
         'ERC20 total ether sent': sum(int(tx["value"])/1e18 for tx in sent_erc20),
-        'ERC20 total Ether sent contract': 0,  # Not distinguishable in Etherscan API
+        'ERC20 total Ether sent contract': 0, 
         'ERC20 uniq sent addr': len(set(tx["to"].lower() for tx in sent_erc20)),
         'ERC20 uniq rec addr': len(set(tx["from"].lower() for tx in rec_erc20)),
-        'ERC20 uniq sent addr.1': 0,  # Not distinguishable
-        'ERC20 uniq rec contract addr': 0,  # Not distinguishable
+        'ERC20 uniq sent addr.1': 0, 
+        'ERC20 uniq rec contract addr': 0, 
         'ERC20 min val rec': min_val_rec_erc,
         'ERC20 max val rec': max_val_rec_erc,
         'ERC20 avg val rec': avg_val_rec_erc,
@@ -159,9 +143,6 @@ def extract_features(address):
 
     return features
 
-# ---------------------------
-# Main
-# ---------------------------
 if __name__ == "__main__":
     feats = extract_features(ADDRESS)
     #for k, v in feats.items():

@@ -11,9 +11,12 @@ body {
   padding: 30px;
   border-radius: 12px;
   box-shadow: 0 0 10px rgba(0,0,0,0.1);
-  width: 400px;
+  
+  width: 90%;          
+  max-width: 1200px;   
   text-align: center;
   align-self: center;
+  box-sizing: border-box;  
 }
 input, button {
   width: 100%;
@@ -101,4 +104,45 @@ button:hover { background: #0056b3; }
 
 .token-info {
   margin-top: 10px;
+}
+
+.dashboard-toggle {
+  margin: 10px 0;
+  padding: 8px 12px;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.dashboard-toggle:hover {
+  background-color: #0056b3;
+}
+
+.wallet-dashboard {
+  margin-top: 20px;
+  padding: 15px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  background-color: #f9f9f9;
+
+  width: 100%;
+  overflow-x: auto;    
+}
+
+.wallet-dashboard input,
+.wallet-dashboard button {
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+@media screen and (max-width: 768px) {
+  .App {
+    padding: 20px;
+  }
+  .tabs {
+    flex-direction: column;
+    gap: 10px;
+  }
 }

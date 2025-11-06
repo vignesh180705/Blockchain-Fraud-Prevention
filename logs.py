@@ -4,7 +4,7 @@ from dotenv import load_dotenv
 from datetime import datetime
 import json
 load_dotenv()
-# Connect to Ethereum node (Infura, Alchemy, etc.)
+
 INFURA_API_KEY = os.getenv("REACT_APP_INFURA_PROJECT_URL")
 w3 = Web3(Web3.HTTPProvider(INFURA_API_KEY))
 
@@ -18,7 +18,6 @@ contract = w3.eth.contract(address=contract_address, abi=abi)
 def convert_timestamp(ts):
     return datetime.fromtimestamp(ts).strftime('%Y-%m-%d %H:%M:%S')
 
-# Fetch all FraudLogged events
 events = contract.events.FraudLogged.create_filter(from_block=0).get_all_entries()
 c=1
 for event in events:

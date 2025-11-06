@@ -3,26 +3,15 @@ import { ethers } from "ethers";
 import ERC20_ABI from "./abi/ERC20.json";
 import SendEth from "./components/SendEth";
 import SendToken from "./components/SendToken";
+import TransactionHistory from "./components/TransactionHistory";
 import "./index.css";
 
 export const NETWORK_ID = 11155111; // Sepolia
 
 const TOKENS = {
-  MYTOKEN: {
-    name: "MyToken",
-    symbol: "MTK",
-    address: process.env.REACT_APP_ERC_CONTRACT_ADDRESS,
-  },
-  LINK: {
-    name: "Chainlink Token",
-    symbol: "LINK",
-    address: "0x779877A7B0D9E8603169DdbD7836e478b4624789",
-  },
-  WETH: {
-    name: "Wrapped Ether",
-    symbol: "WETH",
-    address: "0xdd13E55209Fd76AfE204dBda4007C227904f0a81",
-  },
+  MYTOKEN: { name: "MyToken", symbol: "MTK", address: process.env.REACT_APP_ERC_CONTRACT_ADDRESS },
+  LINK: { name: "Chainlink Token", symbol: "LINK", address: "0x779877A7B0D9E8603169DdbD7836e478b4624789" },
+  WETH: { name: "Wrapped Ether", symbol: "WETH", address: "0xdd13E55209Fd76AfE204dBda4007C227904f0a81" },
 };
 
 function App() {
@@ -33,82 +22,35 @@ function App() {
   const [tokenBalance, setTokenBalance] = useState("0");
   const [customTokenAddress, setCustomTokenAddress] = useState("");
   const [customTokenInfo, setCustomTokenInfo] = useState(null);
+  const [showDashboard, setShowDashboard] = useState(false);
 
-  // -------------------------------
-  // Connect Wallet
-  // -------------------------------
   async function connectWallet() {
+    if (!window.ethereum) return alert("Please install MetaMask.");
     try {
-      if (!window.ethereum) {
-        alert("Please install MetaMask.");
-        return;
-      }
-
       const provider = new ethers.BrowserProvider(window.ethereum);
       const accounts = await provider.send("eth_requestAccounts", []);
-      if (accounts.length > 0) setAccount(accounts[0]);
-
-      const network = await provider.getNetwork();
-      console.log("Current network:", network.chainId);
-
-      // Force switch to Sepolia if needed
-      if (network.chainId !== 11155111n) {
-        try {
-          await window.ethereum.request({
-            method: "wallet_switchEthereumChain",
-            params: [{ chainId: "0xaa36a7" }], // Sepolia in hex
-          });
-          console.log("Switched to Sepolia");
-        } catch (switchError) {
-          if (switchError.code === 4902) {
-            await window.ethereum.request({
-              method: "wallet_addEthereumChain",
-              params: [
-                {
-                  chainId: "0xaa36a7",
-                  chainName: "Sepolia Test Network",
-                  nativeCurrency: { name: "SepoliaETH", symbol: "SEP", decimals: 18 },
-                  rpcUrls: ["https://rpc.sepolia.org"],
-                  blockExplorerUrls: ["https://sepolia.etherscan.io"],
-                },
-              ],
-            });
-          } else {
-            console.error("Failed to switch:", switchError);
-            alert("Please manually switch MetaMask to Sepolia network.");
-          }
-        }
-      }
-    } catch (error) {
-      console.error("Wallet connection failed:", error);
+      setAccount(accounts[0]);
+    } catch (err) {
+      console.error("Wallet connection failed:", err);
     }
   }
 
-  // -------------------------------
-  // Disconnect Wallet
-  // -------------------------------
   const disconnectWallet = () => {
     setAccount(null);
     setEthBalance("0");
     setTokenBalance("0");
     setCustomTokenInfo(null);
     setCustomTokenAddress("");
+    setShowDashboard(false);
   };
 
-  // -------------------------------
-  // Fetch Balances
-  // -------------------------------
   async function fetchBalances() {
     if (!account || !window.ethereum) return;
-
     try {
       const provider = new ethers.BrowserProvider(window.ethereum);
-
-      // ETH Balance
       const balanceWei = await provider.getBalance(account);
       setEthBalance(ethers.formatEther(balanceWei));
 
-      // Token balance
       const currentToken = TOKENS[selectedToken];
       const tokenAddress = selectedToken === "CUSTOM" ? customTokenAddress : currentToken.address;
 
@@ -118,75 +60,45 @@ function App() {
           const token = new ethers.Contract(tokenAddress, ERC20_ABI, provider);
           const decimals = await token.decimals();
           const tokenBalRaw = await token.balanceOf(account);
-          const formattedToken = ethers.formatUnits(tokenBalRaw, decimals);
-          setTokenBalance(formattedToken.toString());
-        } else {
-          console.warn(`No contract found at ${tokenAddress}`);
-          setTokenBalance("0");
-        }
-      } else {
-        setTokenBalance("0");
-      }
-    } catch (error) {
-      console.error("Error fetching balances:", error);
+          setTokenBalance(ethers.formatUnits(tokenBalRaw, decimals));
+        } else setTokenBalance("0");
+      } else setTokenBalance("0");
+    } catch (err) {
+      console.error("Error fetching balances:", err);
     }
   }
 
-  // -------------------------------
-  // Fetch Custom Token Info
-  // -------------------------------
   async function fetchCustomTokenInfo(address) {
+    if (!ethers.isAddress(address)) return alert("Invalid token address");
     try {
-      if (!ethers.isAddress(address)) {
-        alert("Invalid token address");
-        return;
-      }
-
       const provider = new ethers.BrowserProvider(window.ethereum);
-      const code = await provider.getCode(address);
-      if (code === "0x") {
-        alert("No contract found at this address");
-        return;
-      }
-
       const token = new ethers.Contract(address, ERC20_ABI, provider);
       const [name, symbol, decimals, balanceRaw] = await Promise.all([
-        token.name(),
-        token.symbol(),
-        token.decimals(),
-        token.balanceOf(account),
+        token.name(), token.symbol(), token.decimals(), token.balanceOf(account)
       ]);
-
-      const balance = ethers.formatUnits(balanceRaw, decimals);
-
-      setCustomTokenInfo({ name, symbol, decimals, balance });
-      setTokenBalance(balance.toString());
+      setCustomTokenInfo({ name, symbol, decimals, balance: ethers.formatUnits(balanceRaw, decimals) });
+      setTokenBalance(ethers.formatUnits(balanceRaw, decimals));
     } catch (err) {
-      console.error("❌ Error fetching token info:", err);
-      alert("Failed to fetch token details. Check console for details.");
+      console.error(err);
+      alert("Failed to fetch token details.");
     }
   }
 
-  // -------------------------------
-  // Effects
-  // -------------------------------
-  useEffect(() => {
-    if (account) fetchBalances();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [account, selectedToken]);
+  useEffect(() => { if (account) fetchBalances(); }, [account, selectedToken]);
 
   useEffect(() => {
-    if (window.ethereum) {
-      window.ethereum.on("accountsChanged", (accounts) => {
-        setAccount(accounts[0] || null);
-      });
-      window.ethereum.on("chainChanged", () => window.location.reload());
-    }
+    if (!window.ethereum) return;
+    const handleAccounts = (accounts) => setAccount(accounts[0] || null);
+    const handleChain = () => window.location.reload();
+    window.ethereum.on("accountsChanged", handleAccounts);
+    window.ethereum.on("chainChanged", handleChain);
+    return () => {
+      window.ethereum.removeListener("accountsChanged", handleAccounts);
+      window.ethereum.removeListener("chainChanged", handleChain);
+    };
   }, []);
 
-  // -------------------------------
-  // Render
-  // -------------------------------
   return (
     <div className="App">
       <h1>Blockchain Transaction Dashboard</h1>
@@ -195,12 +107,7 @@ function App() {
         <div className="wallet">
           <p><strong>Wallet:</strong> {account.slice(0, 6)}...{account.slice(-4)}</p>
           <p><strong>ETH Balance:</strong> {ethBalance} ETH</p>
-          <p>
-            <strong>
-              {selectedToken === "CUSTOM" ? customTokenInfo?.symbol || "Custom" : TOKENS[selectedToken].symbol} Balance:
-            </strong>{" "}
-            {tokenBalance}
-          </p>
+          <p><strong>{selectedToken === "CUSTOM" ? customTokenInfo?.symbol || "Custom" : TOKENS[selectedToken].symbol} Balance:</strong> {tokenBalance}</p>
           <button onClick={disconnectWallet}>Disconnect</button>
         </div>
       ) : (
@@ -208,36 +115,21 @@ function App() {
       )}
 
       <div className="token-selector">
-        <label htmlFor="token">Select Token: </label>
-        <select
-          id="token"
-          value={selectedToken}
-          onChange={(e) => setSelectedToken(e.target.value)}
-        >
+        <label>Select Token: </label>
+        <select value={selectedToken} onChange={(e) => setSelectedToken(e.target.value)}>
           <option value="CUSTOM">Custom Token</option>
-          {Object.keys(TOKENS).map((key) => (
-            <option key={key} value={key}>
-              {TOKENS[key].name} ({TOKENS[key].symbol})
-            </option>
+          {Object.keys(TOKENS).map(key => (
+            <option key={key} value={key}>{TOKENS[key].name} ({TOKENS[key].symbol})</option>
           ))}
         </select>
       </div>
 
       {selectedToken === "CUSTOM" && (
         <div className="custom-token">
-          <h3>Search for any ERC-20 Token you own</h3>
-          <input
-            type="text"
-            placeholder="Paste the token contract address here"
-            value={customTokenAddress}
-            onChange={(e) => setCustomTokenAddress(e.target.value)}
-          />
-          <button onClick={() => fetchCustomTokenInfo(customTokenAddress)}>
-            Fetch Token Info
-          </button>
-
+          <input type="text" placeholder="Paste token contract address" value={customTokenAddress} onChange={(e) => setCustomTokenAddress(e.target.value)} />
+          <button onClick={() => fetchCustomTokenInfo(customTokenAddress)}>Fetch Token Info</button>
           {customTokenInfo && (
-            <div className="token-info">
+            <div>
               <p><strong>Name:</strong> {customTokenInfo.name}</p>
               <p><strong>Symbol:</strong> {customTokenInfo.symbol}</p>
               <p><strong>Decimals:</strong> {customTokenInfo.decimals}</p>
@@ -251,11 +143,18 @@ function App() {
         <button onClick={() => setTab("eth")} className={tab === "eth" ? "active" : ""}>Send ETH</button>
         <button onClick={() => setTab("token")} className={tab === "token" ? "active" : ""}>Send Token</button>
       </div>
+      {tab === "eth" ? <SendEth account={account} /> : <SendToken selectedToken={selectedToken} TOKENS={TOKENS} account={account} />}
 
-      {tab === "eth" ? (
-        <SendEth account={account} />
-      ) : (
-        <SendToken selectedToken={selectedToken} TOKENS={TOKENS} account={account} />
+      {account && (
+        <button className="dashboard-toggle" onClick={() => setShowDashboard(!showDashboard)}>
+          {showDashboard ? "Hide Wallet Dashboard" : "Show Wallet Dashboard"}
+        </button>
+      )}
+
+      {showDashboard && (
+        <div className="wallet-dashboard">
+          <TransactionHistory account={account} />
+        </div>
       )}
     </div>
   );

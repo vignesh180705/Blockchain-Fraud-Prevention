@@ -10,6 +10,7 @@ export default function SendEth({ account }) {
     async function sendEth() {
         try {
             if (!window.ethereum) return alert("Please install MetaMask.");
+            setStatus("Checking transaction for fraud...");
             const provider = new ethers.BrowserProvider(window.ethereum);
             const signer = await provider.getSigner();
 
@@ -30,12 +31,13 @@ export default function SendEth({ account }) {
 
             const result = await response.json();
 
-            if (result.status === "rejected") {
-                setStatus(`Fraudulent Transaction Detected!`);
+            if (result.prediction === "rejected") {
+                setStatus("Transaction flagged as fraudulent, hence blocked.");
                 setSuccess(false);
                 return;
             }
-
+            setStatus("Legitimate transaction. Sending ETH...");
+            setSuccess(true);
             // Step 3: Proceed with ETH transaction if legit
             const tx = await signer.sendTransaction({
                 to: receiver,
